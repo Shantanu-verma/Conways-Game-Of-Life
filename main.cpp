@@ -1,191 +1,122 @@
-#include<iostream>
-#include<time.h>                        // For clock() and clock_t
-#include<windows.h>                     // For clearing console
-#include<process.h>                     // For exit()
-#include<stdlib.h>
+#include <iostream>
+#include <vector>
+#include <stdlib.h>
+#include <sstream>
+#include <thread>
 
-// Helpers
-const int ROW = 35;
-const int COL = 40;
-const int MAX_CELL = ROW * COL;         // Total grid cells
-const bool CLEAR_SCR = true;            // Set false to disable clearscreen after each generation
-#define cord(i,j) (j*ROW+i)      // For Accesing 2D index in 1D array
+using namespace std;
+class conway_game{
 
-void drawline(char symbol,int size)
-{
-	int i=0;
-	while(i++<=size) std::cout<<symbol;
-}
+  uint32_t ROWS,COLS;
+  float TIME;
+  typedef vector<int> grid;
+  typedef vector<int>::size_type sizet;
+  grid board;
 
-// Main Class
-class board
-{
-		bool *cell;
-	public:
-		board(){
-			std::cout<< "Pass Init Array First \n Exiting." ;
-			exit(0);
-		}
-		board(bool *arr):cell(arr){
-		};
-	    void timer(float time);
-	    void copy(bool *temp);
-	    void print(int *gen);
-	    void reset();
-	    void check();
-	    void clearscreen();
-	    bool intro();
+public:
+  conway_game(uint32_t R, uint32_t C, float t = 0.3):ROWS(R),COLS(C),TIME(t){ }
+  conway_game():ROWS(30),COLS(25),TIME(0.3){ }
+  conway_game(conway_game &rhs){
 
+    this->board = rhs.board;
+    this->ROWS  = rhs.ROWS;
+    this->COLS  = rhs.COLS;
+  }
+  explicit conway_game(conway_game &&rhs){
 
-};
-bool board::intro()
-{
-	system("CLS");
-	std::cout<<"\n\n\tConways Game Of Life\n";
-	std::cout<<"\n\tRules:\n\t> Each cell with one or no neighbors and 4 or more neigbours dies."
-			    		 "\n\t> Each cell with two or three neighbors survives."
-			             "\n\t> Each cell with three neighbors becomes alive yo.\n";
-	char ch;
-	std::cout<<"\n\tStart Simulation ( Y , N ) :";
-	std::cin>>ch;
-	if(ch=='Y'||ch=='y')
-		return 1;
-	else
-		return 0;
+    this->board = rhs.board;
+    this->ROWS  = rhs.ROWS;
+    this->COLS  = rhs.COLS;
+  }
 
-}
-void board::timer(float s) {
-	clock_t wait;
-	wait = clock() + s * CLOCKS_PER_SEC;
-	while (clock() < wait) {
-	}
-}
-void board::check()
-{
-	bool temp[MAX_CELL]={0};
-	for(int i=0; i<ROW; i++)
-	{
-		int low  = (i + 1) % ROW;
-		int up = (i- 1 + ROW) % ROW;
+  uint32_t _at(uint32_t i,uint32_t j){
+    return i*COLS+j;
+  }
 
-		for(int j=0; j<COL; j++)
-		{
-			int right = (j + 1) % COL;
-			int left  = (j - 1 + COL) % COL;
+  auto const get_map()->decltype(this->board) const{
+    return this->board;
+  }
 
-			int count = cell[cord(up,left)] + cell[cord(up,right)] + cell[cord(up,j)] + cell[cord(low,j)]   + cell[cord(low,left)] + cell[cord(low,right)]+ cell[cord(i,left)]  + cell[cord(i,right)];
+  void initialize(){
+    for(sizet i = 0;i<ROWS;i++)
+      for(sizet j = 0;j<COLS;j++)
+        this->board.push_back(0);
+  }
 
-						if (count == 2)
-			                temp[cord(i,j)] = cell[cord(i,j)];
-			            else if (count == 3)
-			                temp[cord(i,j)] = 1;
-			            else
-			                temp[cord(i,j)] = 0;
-		}
+  void copy_grid_from(const grid &rhs){
 
-	}
-	copy(temp);
-}
-void board::reset()
-{
-	for (int i = 0; i < ROW; i++) {
-		for (int j = 0; j < COL; j++) {
+    this->board.erase(board.begin(),board.end());
+    this->board = rhs;
+  }
 
-				cell[cord(i,j)] = 0;
-									  }
-			}
-}
-void board::copy(bool *temp) {
-	for (int i = 0; i < ROW; i++) {
-		for (int j = 0; j < COL; j++) {
+  void pattern_fill(){
 
-			cell[cord(i,j)] = temp[cord(i,j)];
-		}
-	}
-}
-void board::print(int *gen)
-{
-		std::cout<<"\n ";
-	    drawline(char(254),COL+3);
-	    std::cout<< "\t\t"<<char(16)<<" Generation "<<char(26)<<" "<< *gen+1;
+    // Set Pattern
+  board[_at(5,5)] = 1;
+  board[_at(5,6)] = 1;
+  board[_at(5,7)] = 1;
+  board[_at(6,7)] = 1;
+  board[_at(7,6)] = 1;
 
-	    for(int i=0;i<ROW;i++)
-	    {
-	    	std::cout<<"\n";
-	    	std::cout<<" "<<char(219)<<" ";
+  board[_at(16,16)] = 1;
+  board[_at(16,17)] = 1;
+  board[_at(16,18)] = 1;
+  board[_at(17,18)] = 1;
+  board[_at(18,17)] = 1;
 
-			for(int j=0;j<COL;j++)
-			{
-				int k = cord(i,j);
-				char a = cell[k] ? char(177) : ' ';
-				std::cout<<a;
-			}
-			std::cout<<" "<<char(219)<<" ";
-	    }
-	    std::cout<<"\n ";
-	    drawline(char(254),COL+3);
+  }
+  void display(){
 
-}
-
-	// This Function Taken From Stackoverflow
-void board::clearscreen()
-{
-		HANDLE hOut;
-	    COORD Position;
-
-	    hOut = GetStdHandle(STD_OUTPUT_HANDLE);
-
-	    Position.X = 0;
-	    Position.Y = 0;
-
-
-	    SetConsoleCursorPosition(hOut, Position);
-}
-    // End
-
-	// Driver Program
-
-
-auto main()->int
-{
-
-	// Initialization Of Cell Board
-	// Pass Coordinates Of Live Cells
-    // Dont know how to simplify initialiation of live cells
-
-	bool cell_board[MAX_CELL]={0};
-	cell_board[cord(5,5)] = 1;
-	cell_board[cord(5,6)] = 1;
-	cell_board[cord(5,7)] = 1;
-	cell_board[cord(6,7)] = 1;
-	cell_board[cord(7,6)] = 1;
-
-	cell_board[cord(16,16)] = 1;
-	cell_board[cord(16,17)] = 1;
-	cell_board[cord(16,18)] = 1;
-	cell_board[cord(17,18)] = 1;
-	cell_board[cord(18,17)] = 1;
-
-
-	board *game = new board(cell_board);
-
-    // Loops until user press Y or y
-	start:
-	if(!(*game).intro())
-		goto start;
-
+    ostringstream out;
     system("CLS");
-	int i=0;
-	do{
-		if(CLEAR_SCR)
-		game->clearscreen();
-		game->print(&i);
-		game->check();
+    this_thread::sleep_for(100ms);
+    for(sizet i = 0;i<ROWS;i++){
+      for(sizet j = 0;j<COLS;j++){
+        uint8_t sym = board.at(_at(i,j))?'#':' ';
+        out<<sym<<' ';
+      }
+      out<<'\n';
+    }
+    cout<<out.str();
+  }
 
+  size_t get_size() const{
+    return this->board.size();
+  }
+  void process_grid(){
+    grid temp(board);
+    for(sizet i = 0;i<ROWS;i++){
 
-	} while(i++<200);
+      int up    = (i + 1) % ROWS;
+      int down  = (i - 1 + ROWS) % ROWS;
 
-	delete game;
-	return 0;
+      for(sizet j = 0;j<COLS;j++){
+        int left  = (j - 1 + COLS) % COLS;
+        int right = (j + 1) % COLS;
+        int count = temp[_at(i,left)]  + temp[_at(i,right)]  + temp[_at(up,j)]      + temp[_at(down,j)] + 
+                    temp[_at(up,left)] + temp[_at(up,right)] + temp[_at(down,left)] + temp[_at(down,right)];
+
+        if(count == 3)      board[_at(i,j)] = 1;
+        else if(count != 2) board[_at(i,j)] = 0;
+
+      }
+    }
+  }
+};
+int main(){
+  conway_game a(30,30,0.2f);
+  cout<<"\n\n\tConways Game Of Life\n";
+  cout<<"\n\tRules:\n\t> Each cell with one or no neighbors and 4 or more neigbours dies."
+                   "\n\t> Each cell with two or three neighbors survives."
+                   "\n\t> Each cell with three neighbors becomes alive yo.\n";
+  this_thread::sleep_for(5s);
+  a.initialize();
+  a.pattern_fill();
+  while(true){
+
+    a.display();
+    a.process_grid();
+
+  }
+  cin.get();
 }
-
